@@ -50,7 +50,7 @@ describe('angular', function() {
     });
 
     it('should copy empty array', function() {
-      var src = [];
+      var src = [];//foo
       var dst = [{key: "v"}];
       expect(copy(src, dst)).toEqual([]);
       expect(dst).toEqual([]);
