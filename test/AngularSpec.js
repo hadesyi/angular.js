@@ -41,7 +41,7 @@ describe('angular', function() {
     });
 
     it("should deeply copy an array into a new array", function() {
-      var src = [1, {name:"value"}];
+      var src = [1, {name:"value"}]; //dd
       var dst = copy(src);
       expect(src).toEqual([1, {name:"value"}]);
       expect(dst).toEqual(src);
