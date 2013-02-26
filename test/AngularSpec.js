@@ -419,6 +419,10 @@ describe('angular', function() {
       //bugfix: do not encode 'null' as '+' when flag is used
       expect(encodeUriQuery('null', true)).
         toEqual('null');
+
+      //do not encode 'null' with no flag
+      expect(encodeUriQuery('null')).
+        toEqual('null');
     });
   });
 
