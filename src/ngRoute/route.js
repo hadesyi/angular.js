@@ -149,8 +149,8 @@ function $RouteProvider(){
   };
 
 
-  this.$get = ['$rootScope', '$location', '$routeParams', '$q', '$injector', '$http', '$templateCache',
-      function( $rootScope,   $location,   $routeParams,   $q,   $injector,   $http,   $templateCache) {
+  this.$get = ['$rootScope', '$location', '$routeParams', '$q', '$injector', '$http', '$templateCache', '$sce',
+      function( $rootScope,   $location,   $routeParams,   $q,   $injector,   $http,   $templateCache,   $sce) {
 
     /**
      * @ngdoc object
@@ -451,6 +451,7 @@ function $RouteProvider(){
                 if (isFunction(template)) {
                   template = template(next.params);
                 }
+                template = $sce.getAsTrustedResourceUrl(template);
                 if (isDefined(template)) {
                   next.loadedTemplateUrl = template;
                   template = $http.get(template, {cache: $templateCache}).

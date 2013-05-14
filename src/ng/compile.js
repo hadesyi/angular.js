@@ -244,9 +244,9 @@ function $CompileProvider($provide) {
 
   this.$get = [
             '$injector', '$interpolate', '$exceptionHandler', '$http', '$templateCache', '$parse',
-            '$controller', '$rootScope', '$document',
+            '$controller', '$rootScope', '$document', '$sce',
     function($injector,   $interpolate,   $exceptionHandler,   $http,   $templateCache,   $parse,
-             $controller,   $rootScope,   $document) {
+             $controller,   $rootScope,   $document,   $sce) {
 
     var Attributes = function(element, attr) {
       this.$$element = element;
@@ -1063,7 +1063,7 @@ function $CompileProvider($provide) {
 
       $compileNode.html('');
 
-      $http.get(templateUrl, {cache: $templateCache}).
+      $http.get($sce.getAsTrustedResourceUrl(templateUrl), {cache: $templateCache}).
         success(function(content) {
           var compileNode, tempTemplateAttrs, $template;
 
@@ -1171,12 +1171,12 @@ function $CompileProvider($provide) {
     }
 
 
-    function isTrustedContext(node, attrNormalizedName) {
+    function getTrustedContext(node, attrNormalizedName) {
       // maction[xlink:href] can source SVG.  It's not limited to <maction>.
       if (attrNormalizedName == "xlinkHref" ||
           (nodeName_(node) != "IMG" && (attrNormalizedName == "src" ||
                                         attrNormalizedName == "ngSrc"))) {
-        return true;
+        return $sce.RESOURCE_URL;
       }
     }
 
@@ -1201,7 +1201,7 @@ function $CompileProvider($provide) {
 
           // we need to interpolate again, in case the attribute value has been updated
           // (e.g. by another directive's compile function)
-          interpolateFn = $interpolate(attr[name], true, isTrustedContext(node, name));
+          interpolateFn = $interpolate(attr[name], true, getTrustedContext(node, name));
 
           // if attribute was updated so that there is no interpolation going on we don't want to
           // register any observers

@@ -88,16 +88,16 @@ describe('boolean attr directives', function() {
 
 
 describe('ngSrc', function() {
-  it('should interpolate the expression and bind to src', inject(function($compile, $rootScope) {
+  it('should interpolate the expression and bind to src', inject(function($compile, $rootScope, $sce) {
     var element = $compile('<div ng-src="{{id}}"></div>')($rootScope);
 
     $rootScope.$digest();
     expect(element.attr('src')).toBeUndefined();
 
     $rootScope.$apply(function() {
-      $rootScope.id = 1;
+      $rootScope.id = $sce.trustAsResourceUrl('http://somewhere');
     });
-    expect(element.attr('src')).toEqual('1');
+    expect(element.attr('src')).toEqual('http://somewhere');
 
     dealoc(element);
   }));
@@ -108,8 +108,9 @@ describe('ngSrc', function() {
           var element = $compile('<div ng-src="some/{{id}}"></div>')($rootScope);
           dealoc(element);
         }).toThrow(
-            "[$interpolate:noconcat] Error while interpolating: some/{{id}}\nYou may not use " +
-            "multiple expressions when interpolating this expression.");
+            "[$interpolate:noconcat] Error while interpolating: some/{{id}}\nStrict " +
+            "Contextual Escaping disallows interpolations that concatenate multiple expressions " +
+            "when a trusted value is required.  See http://docs.angularjs.org/api/ng.$sce");
     }));
 
     it('should interpolate a multi-part expression for regular attributes', inject(function($compile, $rootScope) {
@@ -124,9 +125,21 @@ describe('ngSrc', function() {
 
   });
 
+  it('should NOT interpolate a wrongly typed expression', inject(function($compile, $rootScope, $sce) {
+    expect(function() {
+        var element = $compile('<div ng-src="{{id}}"></div>')($rootScope);
+        $rootScope.$apply(function() {
+          $rootScope.id = $sce.trustAsUrl('http://somewhere');
+        });
+        element.attr('src');
+      }).toThrow(
+          "[$interpolate:interr] Can't interpolate: {{id}}\nError: [$sce:isecrurl] Blocked " +
+          "loading resource from url not allowed by sceDelegate policy.  URL: http://somewhere");
+  }));
+
   if (msie) {
     it('should update the element property as well as the attribute', inject(
-        function($compile, $rootScope) {
+        function($compile, $rootScope, $sce) {
       // on IE, if "ng:src" directive declaration is used and "src" attribute doesn't exist
       // then calling element.setAttribute('src', 'foo') doesn't do anything, so we need
       // to set the property as well to achieve the desired effect
@@ -135,11 +148,19 @@ describe('ngSrc', function() {
 
       $rootScope.$digest();
       expect(element.prop('src')).toBeUndefined();
+      dealoc(element);
 
+      element = $compile('<div ng-src="some/"></div>')($rootScope);
+
+      $rootScope.$digest();
+      expect(element.prop('src')).toEqual('some/');
+      dealoc(element);
+
+      element = $compile('<div ng-src="{{id}}"></div>')($rootScope);
       $rootScope.$apply(function() {
-        $rootScope.id = 1;
+        $rootScope.id = $sce.trustAsResourceUrl('http://somewhere');
       });
-      expect(element.prop('src')).toEqual('1');
+      expect(element.prop('src')).toEqual('http://somewhere');
 
       dealoc(element);
     }));

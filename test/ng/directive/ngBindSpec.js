@@ -68,12 +68,53 @@ describe('ngBind*', function() {
 
 
   describe('ngBindHtmlUnsafe', function() {
+    var sce;
 
-    it('should set unsafe html', inject(function($rootScope, $compile) {
-      element = $compile('<div ng-bind-html-unsafe="html"></div>')($rootScope);
-      $rootScope.html = '<div onclick="">hello</div>';
-      $rootScope.$digest();
-      expect(angular.lowercase(element.html())).toEqual('<div onclick="">hello</div>');
-    }));
+    function configureSce(enabled) {
+      function log() {};
+      var fakeLog = {log: log, warn: log, info: log, error: log};
+      module(function($provide, $sceProvider) {
+        $provide.value('$log', fakeLog);
+        $sceProvider.enabled(enabled);
+      });
+      inject(['$sce', function($sce) { sce = $sce; }]);
+    };
+
+    describe('SCE disabled', function() {
+      beforeEach(function() {configureSce(false)});
+
+      it('should set unsafe html', inject(function($rootScope, $compile) {
+        element = $compile('<div ng-bind-html-unsafe="html"></div>')($rootScope);
+        $rootScope.html = '<div onclick="">hello</div>';
+        $rootScope.$digest();
+        expect(angular.lowercase(element.html())).toEqual('<div onclick="">hello</div>');
+      }));
+    });
+
+
+    describe('SCE enabled', function() {
+      beforeEach(function() {configureSce(true)});
+
+      it('should NOT set unsafe html for untrusted values', inject(function($rootScope, $compile) {
+        element = $compile('<div ng-bind-html-unsafe="html"></div>')($rootScope);
+        $rootScope.html = '<div onclick="">hello</div>';
+        expect($rootScope.$digest).toThrow();
+      }));
+
+      it('should NOT set unsafe html for wrongly typed values', inject(function($rootScope, $compile) {
+        element = $compile('<div ng-bind-html-unsafe="html"></div>')($rootScope);
+        $rootScope.html = sce.trustAsCss('<div onclick="">hello</div>');
+        expect($rootScope.$digest).toThrow();
+      }));
+
+      it('should set unsafe html for trusted values', inject(function($rootScope, $compile) {
+        element = $compile('<div ng-bind-html-unsafe="html"></div>')($rootScope);
+        $rootScope.html = sce.trustAsHtml('<div onclick="">hello</div>');
+        $rootScope.$digest();
+        expect(angular.lowercase(element.html())).toEqual('<div onclick="">hello</div>');
+      }));
+
+    });
+
   });
 });

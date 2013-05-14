@@ -14,4 +14,51 @@ describe('ngSrc', function() {
     expect(element.attr('src')).not.toBe('');
     expect(element.attr('src')).toBe(undefined);
   }));
+
+  describe('SCE enabled', function() {
+    describe('iframe[ng-src]', function() {
+      it('should pass through src attributes for the same domain', inject(function($compile, $rootScope, $sce) {
+        element = $compile('<iframe ng-src="{{testUrl}}"></iframe>')($rootScope);
+        $rootScope.testUrl = "different_page";
+        $rootScope.$apply();
+        expect(element.attr('src')).toEqual('different_page');
+      }));
+
+      it('should clear out src attributes for a different domain', inject(function($compile, $rootScope, $sce) {
+        element = $compile('<iframe ng-src="{{testUrl}}"></iframe>')($rootScope);
+        $rootScope.testUrl = "http://a.different.domain.example.com";
+        expect(function() { $rootScope.$apply() }).toThrow(
+            "[$interpolate:interr] Can't interpolate: {{testUrl}}\nError: [$sce:isecrurl] Blocked " +
+            "loading resource from url not allowed by sceDelegate policy.  URL: " +
+            "http://a.different.domain.example.com");
+      }));
+
+      it('should clear out JS src attributes', inject(function($compile, $rootScope, $sce) {
+        element = $compile('<iframe ng-src="{{testUrl}}"></iframe>')($rootScope);
+        $rootScope.testUrl = "javascript:alert(1);";
+        expect(function() { $rootScope.$apply() }).toThrow(
+            "[$interpolate:interr] Can't interpolate: {{testUrl}}\nError: [$sce:isecrurl] Blocked " +
+            "loading resource from url not allowed by sceDelegate policy.  URL: " +
+            "javascript:alert(1);");
+      }));
+
+      it('should clear out non-resource_url src attributes', inject(function($compile, $rootScope, $sce) {
+        element = $compile('<iframe ng-src="{{testUrl}}"></iframe>')($rootScope);
+        $rootScope.testUrl = $sce.trustAsUrl("javascript:doTrustedStuff()");
+        expect($rootScope.$apply).toThrow(
+            "[$interpolate:interr] Can't interpolate: {{testUrl}}\nError: [$sce:isecrurl] Blocked " +
+            "loading resource from url not allowed by sceDelegate policy.  URL: " +
+            "javascript:doTrustedStuff()");
+      }));
+
+      it('should pass through $sce.trustAs() values in src attributes', inject(function($compile, $rootScope, $sce) {
+        element = $compile('<iframe ng-src="{{testUrl}}"></iframe>')($rootScope);
+        $rootScope.testUrl = $sce.trustAsResourceUrl("javascript:doTrustedStuff()");
+        $rootScope.$apply();
+
+        expect(element.attr('src')).toEqual('javascript:doTrustedStuff()');
+      }));
+    });
+
+  });
 });
