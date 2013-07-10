@@ -85,7 +85,7 @@ function $InterpolateProvider() {
      * @param {boolean=} mustHaveExpression if set to true then the interpolation string must have
      *    embedded expression in order to return an interpolation function. Strings with no
      *    embedded expression will return null for the interpolation function.
-     * @param {number=} trustedContext when provided, the returned function passes the interpolated
+     * @param {string=} trustedContext when provided, the returned function passes the interpolated
      *    result through {@link ng.$sce#getAsTrusted $sce.getAsTrusted(interpolatedResult,
      *    trustedContext)} before returning it.  Refer to the {@link ng.$sce $sce} service that
      *    provides Strict Contextual Escaping for details.

@@ -2,17 +2,18 @@
 
 var $sceMinError = minErr('$sce');
 
-var SCE_CONTEXTS = {};
-// The ANY context is used by code that optionally accepts $sce.trustAs() results.
-// This is not a valid value for $sce.trustAs() so you can't create values for this context.
-SCE_CONTEXTS.ANY = -1;
-SCE_CONTEXTS.HTML = 1;
-SCE_CONTEXTS.CSS = 2;
-SCE_CONTEXTS.URL = 3;
-// RESOURCE_URL is a subtype of URL used in contexts where a priviliged resource is sourced from a
-// url.  (e.g. ng-include, script src)
-SCE_CONTEXTS.RESOURCE_URL = 4;
-SCE_CONTEXTS.JS = 5;
+var SCE_CONTEXTS = {
+  // The ANY context is used by code that optionally accepts $sce.trustAs() results.
+  // This is not a valid value for $sce.trustAs() so you can't create values for this context.
+  ANY: 'any',
+  HTML: 'html',
+  CSS: 'css',
+  URL: 'url',
+  // RESOURCE_URL is a subtype of URL used in contexts where a privileged resource is sourced from a
+  // url.  (e.g. ng-include, script src, templateUrl)
+  RESOURCE_URL: 'resource_url',
+  JS: 'js'
+};
 
 
 /**
@@ -34,7 +35,7 @@ SCE_CONTEXTS.JS = 5;
  * Refer {@link ng.$sceDelegateProvider $sceDelegateProvider} to configure this service.
  *
  * The default instance of `$sceDelegate` should work out of the box with little pain.  While you
- * can override it complete to change the behavior of `$sce` completely, the common case would
+ * can override it completely to change the behavior of `$sce`, the common case would
  * involve configuring the {@link ng.$sceDelegateProvider $sceDelegateProvider} instead by setting
  * your own whitelists and blacklists for trusting URLs used for loading AngularJS resources such as
  * templates.  Refer {@link ng.$sceDelegateProvider#resourceUrlWhitelist
@@ -44,7 +45,7 @@ SCE_CONTEXTS.JS = 5;
 
 /**
  * @ngdoc object
- * @name ng.$sceDelegateProvider
+ * @name ng.$sceDelegatePr ovider
  * @description
  *
  * The $sceDelegateProvider provider allows developers to configure the {@link ng.$sceDelegate
@@ -72,13 +73,13 @@ function $SceDelegateProvider() {
    * @param {Array=} whitelist When provided, replaces the resourceUrlWhitelist with the value
    *     provided.  This must be an array.
    *
-   *     Each element of this array must either be a regex or the special string `self`.
+   *     Each element of this array must either be a regex or the special string `'self'`.
    *
    *     When a regex is used, it is matched against the normalized / absolute URL of the resource
    *     being tested.
    *
-   *     The **special string** `self` can be used to match against all URLs of the same domain as the
-   *     document with the same protocol (allows sourcing https resources from http documents.)
+   *     The **special string** `'self'` can be used to match against all URLs of the same domain as the
+   *     application document with the same protocol (allows sourcing https resources from http documents.)
    *
    *     Please note that **an empty whitelist array will block all URLs**!
    *
@@ -105,14 +106,15 @@ function $SceDelegateProvider() {
    * @param {Array=} blacklist When provided, replaces the resourceUrlBlacklist with the value
    *     provided.  This must be an array.
    *
-   *     Each element of this array must either be a regex or the special string `self` (see
+   *     Each element of this array must either be a regex or the special string `'self'` (see
    *     `resourceUrlWhitelist` for meaning - it's only really useful there.)
    *
    *     When a regex is used, it is matched against the normalized / absolute URL of the resource
    *     being tested.
    *
-   *     The typical usage for the blacklist is to **block open redirects** served by your domain as
-   *     these would otherwise be trusted but actually return content from the redirected domain.
+   *     The typical usage for the blacklist is to **block [open redirects](http://cwe.mitre.org/data/definitions/601.html)**
+   *     served by your domain as these would otherwise be trusted but actually return content from the redirected
+   *     domain.
    *
    *     Finally, **the blacklist overrides the whitelist** and has the final say.
    *
@@ -160,8 +162,8 @@ function $SceDelegateProvider() {
       urlParsingNode.setAttribute('href', urlParsingNode.href);
     }
     // href property always returns normalized absolute url
-    var i, n, matcher, allowed = false;
-    // Ensure that at least item from the whitelist allows this url.
+    var i, n, allowed = false;
+    // Ensure that at least one item from the whitelist allows this url.
     for (i = 0, n = resourceUrlWhitelist.length; i < n; i++) {
       if (matchUrl(resourceUrlWhitelist[i], urlParsingNode, documentLocation)) {
         allowed = true;
@@ -181,9 +183,8 @@ function $SceDelegateProvider() {
   }
 
   this.$get = ['$log', '$exceptionHandler', '$document', function(
-                $log,   $exceptionHandler,   $document) {
+      $log,   $exceptionHandler,   $document) {
 
-    // TODO(chirayu): Ensure that we're using the right document for contexts like IFRAMES, etc.
     var urlParsingNode = $document[0].createElement('a');
 
     function generateHolderType(base) {
@@ -224,15 +225,16 @@ function $SceDelegateProvider() {
      * See {@link ng.$sce $sce} for enabling strict contextual escaping.
      *
      * @param {*} value The value that that should be considered trusted/safe.
-     * @param {Number} type The kind of context in which this value is safe for use.  e.g. url,
+     * @param {string} type The kind of context in which this value is safe for use.  e.g. url,
      *   resource_url, html, js and css.
-     * @returns {opaque} A value that can be used to stand in for the provided `value` in places
+     * @returns {*} A value that can be used to stand in for the provided `value` in places
      * where Angular expects a $sce.trustAs() return value.
      */
     function trustAs(trustedValue, type) {
       var constructor = byType[type];
       if (type === SCE_CONTEXTS.ANY || !constructor) {
-        throw $sceMinError('mistyped', 'Attempting to use a trusted value of one type as a different type.');
+        throw $sceMinError('icontext', 'Attempted to trust a value in invalid context. Context: {0}; Value: {1}',
+            type, trustedValue);
       }
       return new constructor(trustedValue);
     }
@@ -249,7 +251,7 @@ function $SceDelegateProvider() {
      * `$sceDelegate.trustAs`} creation call.
      *
      * @param {*} maybeTrusted The value that is to be tested.
-     * @param {Number} type The enum value for the kind of context in which this value is tested to
+     * @param {string} type The enum value for the kind of context in which this value is tested to
      *   be safe for use.
      * @returns {boolean} True if the value is trusted/safe for use in the queried contexts.  False
      *   otherwise.
@@ -281,7 +283,7 @@ function $SceDelegateProvider() {
      * this condition isn't satisfied, throws an exception.
      *
      * @param {*} maybeTrusted The result of a prior {@link ng.$sceDelegate#trustAs `$sceDelegatetrust`} call.
-     * @param {Number} type The kind of context in which this value is to be used.
+     * @param {string} type The kind of context in which this value is to be used.
      * @returns {*} The value the was originally provided to {@link ng.$sceDelegate#trustAs
      *     `$sceDelegate.trustAs`} if valid in this context.  Otherwise, throws an exception.
      */
@@ -298,19 +300,20 @@ function $SceDelegateProvider() {
         if (isResourceUrlAllowedByPolicy(urlParsingNode, maybeTrusted, documentLocation)) {
           return maybeTrusted;
         } else {
-            $exceptionHandler($sceMinError('isecrurl',
-                'Blocked loading resource from url not allowed by sceDelegate policy.  URL: {0}', maybeTrusted.toString()));
-            return;
+          $exceptionHandler($sceMinError('isecrurl',
+              'Blocked loading resource from url not allowed by $sceDelegate policy.  URL: {0}', maybeTrusted.toString()));
+          return;
         }
       }
       $exceptionHandler($sceMinError('unsafe', 'Attempting to use an unsafe value in a safe context.'));
     }
 
     return { trustAs: trustAs,
-             isTrusted: isTrusted,
-             getAsTrusted: getAsTrusted };
+      isTrusted: isTrusted,
+      getAsTrusted: getAsTrusted };
   }];
 }
+
 
 
 /**
@@ -339,9 +342,9 @@ function $SceDelegateProvider() {
  * Strict Contextual Escaping (SCE) is a mode in which AngularJS requires bindings in certain
  * contexts to result in a value that is marked as safe to use for that context One example of such
  * a context is binding arbitrary html controlled by the user via `ng-bind-html-unsafe`.  We refer
- * to these contexts as priviliged or SCE contexts.
+ * to these contexts as privileged or SCE contexts.
  *
- * As of version 1.1.6/1.2, Angular ships with SCE enabled by default.
+ * As of version 1.2, Angular ships with SCE enabled by default.
  *
  * Note:  When enabled (the default), IE8 in quirks mode is not supported.  In this mode, IE8 allows
  * one to execute arbitrary javascript by the use of the expression() syntax.  Refer
@@ -352,7 +355,7 @@ function $SceDelegateProvider() {
  * SCE assists in writing code in way that (a) is secure by default and (b) makes auditing for
  * security vulnerabilities such as XSS, clickjacking, etc. a lot easier.
  *
- * Here's an example of a binding in a priviliged context:
+ * Here's an example of a binding in a privileged context:
  *
  * <pre class="prettyprint">
  *     <input ng-model="userHtml">
@@ -383,12 +386,12 @@ function $SceDelegateProvider() {
  *
  * In the case of AngularJS' SCE service, one uses {@link ng.$sce#trustAs $sce.trustAs} (and shorthand
  * methods such as {@link ng.$sce#trustAsHtml $sce.trustAsHtml}, etc.) to obtain values that will be
- * accepted by SCE / priviliged contexts.
+ * accepted by SCE / privileged contexts.
  *
  *
  * ## How does it work?
  *
- * In priviliged contexts, directives and code will bind to the result of {@link ng.$sce#getAsTrusted
+ * In privileged contexts, directives and code will bind to the result of {@link ng.$sce#getAsTrusted
  * $sce.getAsTrusted(value)} rather than to the value directly.  Directives use {@link
  * ng.$sce#parse $sce.parseAs} rather than `$parse` to watch attribute bindings, which performs the
  * {@link ng.$sce#getAsTrusted $sce.getAsTrusted} behind the scenes on non-constant literals.
@@ -451,13 +454,13 @@ function $SceDelegateProvider() {
  *
  * ## What trusted context types are supported?
  *
- * | Context        | Notes |
- * |================|================|
- * | `$sce.HTML`        | For HTML that's safe to that's safe to source into the application.  The {@link ng.directive:ngBindHtmlUnsafe ngBindHtmlUnsafe} directive requires bindings to pass {@link ng.$sce#isTrustedHtml} |
- * | `$sce.CSS`        | For CSS that's safe to source into the application.  Currently unused.  Feel free to use it in your own directives. |
- * | `$sce.URL`        | For URLs that are safe to follow as links.  Currently unused (`<a href=` sanitizes urls and does not require `$sce.isTrustedHtml` bindings. |
- * | `$sce.RESOURCE_URL`        | For URLs that are not only safe to follow as links, but whose contens are also safe to include in your application.  Examples include `ng-include`, `src` / `ngSrc` bindings for tags other than `IMG` (e.g. `IFRAME`, `OBJECT`, etc.)  <br><br>Note that `$sce.RESOURCE_URL` makes a stronger statement about the URL than `$sce.URL` does and therefore contexts requiring values trusted for `$sce.RESOURCE_URL` can be used anywhere that values trusted for `$sce.URL` are required. |
- * | `$sce.JS`        | For JavaScript that is safe to execute in your application's context.  Currently unused.  Feel free to use it in your own directives. |
+ * | Context             | Notes          |
+ * |=====================|================|
+ * | `$sce.HTML`         | For HTML that's safe to that's safe to source into the application.  The {@link ng.directive:ngBindHtmlUnsafe ngBindHtmlUnsafe} directive requires bindings to pass {@link ng.$sce#isTrustedHtml} |
+ * | `$sce.CSS`          | For CSS that's safe to source into the application.  Currently unused.  Feel free to use it in your own directives. |
+ * | `$sce.URL`          | For URLs that are safe to follow as links.  Currently unused (`<a href=` sanitizes urls and does not require `$sce.isTrustedHtml` bindings. |
+ * | `$sce.RESOURCE_URL` | For URLs that are not only safe to follow as links, but whose contens are also safe to include in your application.  Examples include `ng-include`, `src` / `ngSrc` bindings for tags other than `IMG` (e.g. `IFRAME`, `OBJECT`, etc.)  <br><br>Note that `$sce.RESOURCE_URL` makes a stronger statement about the URL than `$sce.URL` does and therefore contexts requiring values trusted for `$sce.RESOURCE_URL` can be used anywhere that values trusted for `$sce.URL` are required. |
+ * | `$sce.JS`           | For JavaScript that is safe to execute in your application's context.  Currently unused.  Feel free to use it in your own directives. |
  *
  * ## Show me an example.
  *
@@ -471,7 +474,7 @@ function $SceDelegateProvider() {
       <div ng-show="myCtrl.errorMsg">Error: {{myCtrl.errorMsg}}</div>
       <div ng-repeat="userComment in myCtrl.userComments">
         <hr>
-        <b>{{userComment.name}}</b>: 
+        <b>{{userComment.name}}</b>:
         <span ng-bind-html-unsafe="userComment.htmlComment" class="htmlComment"></span>
       </div>
       <div ng-bind-html-unsafe="myCtrl.someHtml" id="someHtml"></div>
@@ -573,8 +576,8 @@ function $SceProvider() {
    * @methodOf ng.$sceProvider
    * @function
    *
-   * @param {Boolean=} If provided, then enables/disables SCE.
-   * @return {Boolean} true if SCE is enabled, false otherwise.  
+   * @param {boolean=} value If provided, then enables/disables SCE.
+   * @return {boolean} true if SCE is enabled, false otherwise.
    *
    * @description
    * Enables/disables SCE and returns the current value.
@@ -587,7 +590,7 @@ function $SceProvider() {
   };
 
 
-  /* Default implementation for SCE.
+  /* Design notes on the default implementation for SCE.
    *
    * The API contract for the SCE delegate
    * -------------------------------------
@@ -624,7 +627,7 @@ function $SceProvider() {
    * The contract is simply this:
    *
    *     isTrusted(value, $sce.RESOURCE_URL) => (implies) isTrusted(value, $sce.URL)
-   * 
+   *
    * and that if getAsTrusted(value, $sce.RESOURCE_URL) returns a value, then
    * getAsTrusted(value, $sce.URL) will also return that same value.  Inheritance happens to capture
    * this in a natural way.  In some future, we may not use inheritance anymore.  That is OK because
@@ -639,7 +642,7 @@ function $SceProvider() {
       var documentMode = $document[0].documentMode;
       if (documentMode !== undefined && documentMode < 8) {
         throw $sceMinError('iequirks',
-          'Strict Contextual Escaping does not support Internet Explorer version < 10 in quirks ' +
+          'Strict Contextual Escaping does not support Internet Explorer version < 9 in quirks ' +
           'mode.  You can fix this by adding the text <!doctype html> to the top of your HTML ' +
           'document.  See http://docs.angularjs.org/api/ng.$sce for more information.');
       }
@@ -684,7 +687,7 @@ function $SceProvider() {
      * *type*)}
      *
      * @param {string} expression String expression to compile.
-     * @param {Number} type The kind of SCE context in which this result will be used.
+     * @param {string} type The kind of SCE context in which this result will be used.
      * @returns {function(context, locals)} a function which represents the compiled expression:
      *
      *    * `context` – `{object}` – an object against which any expressions embedded in the strings
@@ -692,16 +695,16 @@ function $SceProvider() {
      *    * `locals` – `{object=}` – local variables context object, useful for overriding values in
      *      `context`.
      */
-    sce.parseAs = function sceParse(expr, type) {
+    sce.parseAs = function sceParseAs(expr, type) {
       var parsed = $parse(expr);
       if (parsed.literal && parsed.constant) {
         return parsed;
       } else {
-        return function sceParseTrusted(self, locals) {
+        return function sceParseAsTrusted(self, locals) {
           return sce.getAsTrusted(parsed(self, locals), type);
         }
       }
-    }
+    };
 
     /**
      * @ngdoc method
@@ -716,9 +719,9 @@ function $SceProvider() {
      * {@link ng.$sce $sce} for enabling strict contextual escaping.
      *
      * @param {*} value The value that that should be considered trusted/safe.
-     * @param {Number} type The kind of context in which this value is safe for use.  e.g. url,
+     * @param {string} type The kind of context in which this value is safe for use.  e.g. url,
      *   resource_url, html, js and css.
-     * @returns {opaque} A value that can be used to stand in for the provided `value` in places
+     * @returns {*} A value that can be used to stand in for the provided `value` in places
      * where Angular expects a $sce.trustAs() return value.
      */
 
@@ -731,8 +734,8 @@ function $SceProvider() {
      * Shorthand method.  `$sce.trustAsHtml(value)` → {@link ng.$sceDelegate#trustAs `$sceDelegate.trustAs(value, $sce.HTML)`}
      *
      * @param {*} value The value to trustAs.
-     * @returns {opaque} An object that can be passed to {@link ng.$sce#getAsTrustedHtml
-     *     $sce.getAsTrustedHtml(value)} to obtain the original value.  (Priviliged directives
+     * @returns {*} An object that can be passed to {@link ng.$sce#getAsTrustedHtml
+     *     $sce.getAsTrustedHtml(value)} to obtain the original value.  (privileged directives
      *     only accept expressions that are either literal constants or are the
      *     return value of {@link ng.$sce#trustAs $sce.trustAs}.)
      */
@@ -746,8 +749,8 @@ function $SceProvider() {
      * Shorthand method.  `$sce.trustAsCss(value)` → {@link ng.$sceDelegate#trustAs `$sceDelegate.trustAs(value, $sce.CSS)`}
      *
      * @param {*} value The value to trustAs.
-     * @returns {opaque} An object that can be passed to {@link ng.$sce#getAsTrustedCss
-     *     $sce.getAsTrustedCss(value)} to obtain the original value.  (Priviliged directives
+     * @returns {*} An object that can be passed to {@link ng.$sce#getAsTrustedCss
+     *     $sce.getAsTrustedCss(value)} to obtain the original value.  (privileged directives
      *     only accept expressions that are either literal constants or are the
      *     return value of {@link ng.$sce#trustAs $sce.trustAs}.)
      */
@@ -761,8 +764,8 @@ function $SceProvider() {
      * Shorthand method.  `$sce.trustAsUrl(value)` → {@link ng.$sceDelegate#trustAs `$sceDelegate.trustAs(value, $sce.URL)`}
      *
      * @param {*} value The value to trustAs.
-     * @returns {opaque} An object that can be passed to {@link ng.$sce#getAsTrustedUrl
-     *     $sce.getAsTrustedUrl(value)} to obtain the original value.  (Priviliged directives
+     * @returns {*} An object that can be passed to {@link ng.$sce#getAsTrustedUrl
+     *     $sce.getAsTrustedUrl(value)} to obtain the original value.  (privileged directives
      *     only accept expressions that are either literal constants or are the
      *     return value of {@link ng.$sce#trustAs $sce.trustAs}.)
      */
@@ -776,8 +779,8 @@ function $SceProvider() {
      * Shorthand method.  `$sce.trustAsResourceUrl(value)` → {@link ng.$sceDelegate#trustAs `$sceDelegate.trustAs(value, $sce.RESOURCE_URL)`}
      *
      * @param {*} value The value to trustAs.
-     * @returns {opaque} An object that can be passed to {@link ng.$sce#getAsTrustedResourceUrl
-     *     $sce.getAsTrustedResourceUrl(value)} to obtain the original value.  (Priviliged directives
+     * @returns {*} An object that can be passed to {@link ng.$sce#getAsTrustedResourceUrl
+     *     $sce.getAsTrustedResourceUrl(value)} to obtain the original value.  (privileged directives
      *     only accept expressions that are either literal constants or are the return
      *     value of {@link ng.$sce#trustAs $sce.trustAs}.)
      */
@@ -791,8 +794,8 @@ function $SceProvider() {
      * Shorthand method.  `$sce.trustAsJs(value)` → {@link ng.$sceDelegate#trustAs `$sceDelegate.trustAs(value, $sce.JS)`}
      *
      * @param {*} value The value to trustAs.
-     * @returns {opaque} An object that can be passed to {@link ng.$sce#getAsTrustedJs
-     *     $sce.getAsTrustedJs(value)} to obtain the original value.  (Priviliged directives
+     * @returns {*} An object that can be passed to {@link ng.$sce#getAsTrustedJs
+     *     $sce.getAsTrustedJs(value)} to obtain the original value.  (privileged directives
      *     only accept expressions that are either literal constants or are the
      *     return value of {@link ng.$sce#trustAs $sce.trustAs}.)
      */
@@ -809,7 +812,7 @@ function $SceProvider() {
      * type is a supertype of the type used in the {@link ng.$sce#trustAs `$sce.trustAs`} creation call.
      *
      * @param {*} maybeTrusted The value that is to be tested.
-     * @param {Number} type The enum value for the kind of context in which this value is tested to
+     * @param {string} type The enum value for the kind of context in which this value is tested to
      *   be safe for use.
      * @returns {boolean} True if the value is trusted/safe for use in the queried contexts.  False
      *   otherwise.
@@ -892,7 +895,7 @@ function $SceProvider() {
      * isn't satisfied, throws an exception.
      *
      * @param {*} maybeTrusted The result of a prior {@link ng.$sce#trustAs `$sce.trustAs`} call.
-     * @param {Number} type The kind of context in which this value is to be used.
+     * @param {string} type The kind of context in which this value is to be used.
      * @returns {*} The value the was originally provided to {@link ng.$sce#trustAs `$sce.trustAs`} if
      *     valid in this context.  Otherwise, throws an exception.
      */
@@ -1049,7 +1052,7 @@ function $SceProvider() {
         trustAs = sce.trustAs;
 
     angular.forEach(SCE_CONTEXTS, function (enumValue, name) {
-      var lName = name.toLowerCase();
+      var lName = lowercase(name);
       sce[camelCase("parse_as_" + lName)] = function (expr) {
         return parse(expr, enumValue);
       }

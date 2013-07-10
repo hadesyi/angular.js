@@ -2,7 +2,7 @@
 
 describe('SCE', function() {
 
-  describe('disabled', function() {
+  describe('when disabled', function() {
     beforeEach(function() {
       module(function($sceProvider) {
         $sceProvider.enabled(false);
@@ -43,7 +43,7 @@ describe('SCE', function() {
           if (expectException) {
             expect(constructSce).toThrow(
                 '[$sce:iequirks] Strict Contextual Escaping does not support Internet Explorer ' +
-                'version < 10 in quirks mode.  You can fix this by adding the text <!doctype html> to ' +
+                'version < 9 in quirks mode.  You can fix this by adding the text <!doctype html> to ' +
                 'the top of your HTML document.  See http://docs.angularjs.org/api/ng.$sce for more ' +
                 'information.');
           } else {
@@ -82,9 +82,9 @@ describe('SCE', function() {
     });
   });
 
-  describe('enabled', function() {
+  describe('when enabled', function() {
     it('should wrap values with TrustedValueHolder', inject(function($sce) {
-      var originalValue = 'originalValue';
+      var originalValue = '';
       var wrappedValue = $sce.trustAs(originalValue, $sce.HTML);
       expect(typeof wrappedValue).toBe('object');
       expect($sce.isTrusted(wrappedValue, $sce.HTML)).toBe(true);
@@ -104,9 +104,9 @@ describe('SCE', function() {
 
     it('should NOT wrap unknown type / wildcard type values', inject(function($sce) {
       expect(function() { $sce.trustAs(123, $sce.ANY); }).toThrow(
-          '[$sce:mistyped] Attempting to use a trusted value of one type as a different type.');
-      expect(function() { $sce.trustAs(123, "UNDEFINED" ); }).toThrow(
-          '[$sce:mistyped] Attempting to use a trusted value of one type as a different type.');
+          '[$sce:icontext] Attempted to trust a value in invalid context. Context: any; Value: 123');
+      expect(function() { $sce.trustAs(123, "unknown1" ); }).toThrow(
+          '[$sce:icontext] Attempted to trust a value in invalid context. Context: unknown1; Value: 123');
     }));
 
     it('should unwrap null into null', inject(function($sce) {
@@ -154,9 +154,9 @@ describe('SCE', function() {
     it('should override the default $sce.trustAs/isTrusted/etc.', function() {
       module(function($provide) {
         $provide.value('$sceDelegate', {
-            trustAs:      function (value) { return "wrapped:"   + value; },
-            isTrusted:  function (value) { return "isTrusted:" + value; },
-            getAsTrusted: function (value) { return "unwrapped:" + value; }
+            trustAs: function(value) { return "wrapped:"   + value; },
+            isTrusted: function(value) { return "isTrusted:" + value; },
+            getAsTrusted: function(value) { return "unwrapped:" + value; }
         });
       });
 
@@ -252,7 +252,7 @@ describe('SCE', function() {
         blackList: []
       }, function($sce) {
         expect(function() { $sce.getAsTrustedResourceUrl('#'); }).toThrow(
-          '[$sce:isecrurl] Blocked loading resource from url not allowed by sceDelegate policy.  URL: #');
+          '[$sce:isecrurl] Blocked loading resource from url not allowed by $sceDelegate policy.  URL: #');
     }));
 
     it('should match against normalized urls', runTest(
@@ -261,7 +261,7 @@ describe('SCE', function() {
         blackList: []
       }, function($sce) {
         expect(function() { $sce.getAsTrustedResourceUrl('foo'); }).toThrow(
-          '[$sce:isecrurl] Blocked loading resource from url not allowed by sceDelegate policy.  URL: foo');
+          '[$sce:isecrurl] Blocked loading resource from url not allowed by $sceDelegate policy.  URL: foo');
     }));
 
     it('should support custom regex', runTest(
@@ -271,7 +271,7 @@ describe('SCE', function() {
       }, function($sce) {
         expect($sce.getAsTrustedResourceUrl('http://example.com/foo')).toEqual('http://example.com/foo');
         expect(function() { $sce.getAsTrustedResourceUrl('https://example.com/foo'); }).toThrow(
-          '[$sce:isecrurl] Blocked loading resource from url not allowed by sceDelegate policy.  URL: https://example.com/foo');
+          '[$sce:isecrurl] Blocked loading resource from url not allowed by $sceDelegate policy.  URL: https://example.com/foo');
     }));
 
     it('should support the special string "self" in whitelist', runTest(
@@ -288,7 +288,7 @@ describe('SCE', function() {
         blackList: ['self']
       }, function($sce) {
         expect(function() { $sce.getAsTrustedResourceUrl('foo'); }).toThrow(
-          '[$sce:isecrurl] Blocked loading resource from url not allowed by sceDelegate policy.  URL: foo');
+          '[$sce:isecrurl] Blocked loading resource from url not allowed by $sceDelegate policy.  URL: foo');
     }));
 
     it('should have blacklist override the whitelist', runTest(
@@ -297,7 +297,7 @@ describe('SCE', function() {
         blackList: ['self']
       }, function($sce) {
         expect(function() { $sce.getAsTrustedResourceUrl('foo'); }).toThrow(
-          '[$sce:isecrurl] Blocked loading resource from url not allowed by sceDelegate policy.  URL: foo');
+          '[$sce:isecrurl] Blocked loading resource from url not allowed by $sceDelegate policy.  URL: foo');
     }));
 
     it('should support multiple items in both lists', runTest(
@@ -309,9 +309,9 @@ describe('SCE', function() {
         expect($sce.getAsTrustedResourceUrl('http://example.com/1')).toEqual('http://example.com/1');
         expect($sce.getAsTrustedResourceUrl('http://example.com/2')).toEqual('http://example.com/2');
         expect(function() { $sce.getAsTrustedResourceUrl('http://example.com/3'); }).toThrow(
-          '[$sce:isecrurl] Blocked loading resource from url not allowed by sceDelegate policy.  URL: http://example.com/3');
+          '[$sce:isecrurl] Blocked loading resource from url not allowed by $sceDelegate policy.  URL: http://example.com/3');
         expect(function() { $sce.getAsTrustedResourceUrl('open_redirect'); }).toThrow(
-          '[$sce:isecrurl] Blocked loading resource from url not allowed by sceDelegate policy.  URL: open_redirect');
+          '[$sce:isecrurl] Blocked loading resource from url not allowed by $sceDelegate policy.  URL: open_redirect');
     }));
 
   });
