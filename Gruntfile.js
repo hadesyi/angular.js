@@ -1,6 +1,22 @@
 var files = require('./angularFiles').files;
 var util = require('./lib/grunt/utils.js');
 
+function printAndExit(exitType) {
+  return function() {
+    console.log('about to exit due to: ' + exitType, arguments, '\n', new Error().stack);
+  };
+}
+
+
+["exit",
+  "uncaughtException",
+  "SIGHUP", "SIGINT", "SIGQUIT", "SIGILL", "SIGABRT", "SIGFPE", "SIGKILL", "SIGSEGV", "SIGPIPE", "SIGALRM", "SIGTERM", "SIGCHLD", "SIGSTOP", "SIGBUS", "SIGTRAP", "SIGEMT"
+].forEach(function(event) {
+  process.on(event, printAndExit(event));
+});
+
+
+
 module.exports = function(grunt) {
   //grunt plugins
   grunt.loadNpmTasks('grunt-contrib-clean');
