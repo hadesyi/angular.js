@@ -102,7 +102,8 @@ directive.prettyprint = ['reindentCode', function(reindentCode) {
       //ensure that angular won't compile {{ curly }} values
       html = html.replace(/\{\{/g, '<span>{{</span>')
                  .replace(/\}\}/g, '<span>}}</span>');
-      element.html(window.prettyPrintOne(reindentCode(html), undefined, true));
+      element.html(html);
+//      element.html(window.prettyPrintOne(reindentCode(html), undefined, true));
     }
   };
 }];
