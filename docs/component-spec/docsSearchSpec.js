@@ -1,4 +1,4 @@
-describe("docsSearch", function() {
+xdescribe("docsSearch", function() {
 
   beforeEach(module('docsApp'));
 
@@ -30,7 +30,7 @@ describe("docsSearch", function() {
               });
               return data;
             }
-          } 
+          }
         };
       });
     });

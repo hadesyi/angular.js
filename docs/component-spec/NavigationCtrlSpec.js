@@ -1,4 +1,4 @@
-describe("DocsNavigationCtrl", function() {
+xdescribe("DocsNavigationCtrl", function() {
 
   beforeEach(module('docsApp'));
 

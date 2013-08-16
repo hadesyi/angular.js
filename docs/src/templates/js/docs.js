@@ -62,7 +62,7 @@ docsApp.controller.DocsVersionsCtrl = ['$scope', '$window', 'NG_VERSIONS', 'NG_V
   };
 }];
 
-docsApp.controller.DocsNavigationCtrl = ['$scope', '$location', 'docsSearch', function($scope, $location, docsSearch) {
+docsApp.controller.DocsNavigationCtrl = ['$scope', '$location', function($scope, $location) {
   function clearResults() {
     $scope.results = [];
     $scope.colClassName = null;
@@ -107,57 +107,6 @@ docsApp.controller.DocsNavigationCtrl = ['$scope', '$location', 'docsSearch', fu
   };
 }];
 
-docsApp.serviceFactory.lunrSearch = function() {
-  return function(properties) {
-    var engine = lunr(properties);
-    return {
-      store : function(values) {
-        engine.add(values);
-      },
-      search : function(q) {
-        return engine.search(q);
-      }
-    };
-  };
-};
-
-docsApp.serviceFactory.docsSearch = ['$rootScope','lunrSearch', 'NG_PAGES',
-  function($rootScope, lunrSearch, NG_PAGES) {
-
-  var index = lunrSearch(function() {
-    this.ref('id');
-    this.field('title', {boost: 50});
-    this.field('description', { boost : 20 });
-  });
-
-  angular.forEach(NG_PAGES, function(page, i) {
-    var title = page.shortName;
-    if(title.charAt(0) == 'n' && title.charAt(1) == 'g') {
-      title = title + ' ' + title.charAt(2).toLowerCase() + title.substr(3);
-    }
-    index.store({
-      id: i,
-      title: title,
-      description: page.keywords
-    });
-  });
-
-  return function(q) {
-    var results = {};
-    angular.forEach(index.search(q), function(result) {
-      var item = NG_PAGES[result.ref];
-      var section = item.section;
-      if(section == 'cookbook') {
-        section = 'tutorial';
-      }
-      results[section] = results[section] || [];
-      if(results[section].length < 15) {
-        results[section].push(item);
-      }
-    });
-    return results;
-  };
-}];
 
 docsApp.directive.focused = function($timeout) {
   return function(scope, element, attrs) {
