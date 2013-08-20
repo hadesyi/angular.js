@@ -2218,7 +2218,6 @@ describe('$compile', function() {
     });
 
 
-
     it('should instantiate controllers in the parent->child order when transluction, templateUrl and replacement ' +
         'are in the mix', function() {
       // When a child controller is in the transclusion that replaces the parent element that has a directive with
@@ -2303,70 +2302,6 @@ describe('$compile', function() {
         $rootScope.$apply();
         expect(log).toEqual('parentController; childController; babyController');
         expect(element.text()).toBe('parentTemplateText;childTemplateText;childContentText;babyTemplateText;')
-      });
-    });
-
-
-    it('should allow controller usage in pre-link directive functions with templateUrl', function () {
-      module(function () {
-        var Ctrl = function (log) {
-          log('instance');
-        };
-
-        directive('myDirective', function () {
-          return {
-            scope: true,
-            templateUrl: 'hello.html',
-            controller: Ctrl,
-            compile: function () {
-              return {
-                pre: function (scope, template, attr, ctrl) {},
-                post: function () {}
-              };
-            }
-          };
-        });
-      });
-
-      inject(function ($templateCache, $compile, $rootScope, log) {
-        $templateCache.put('hello.html', '<p>Hello</p>');
-
-        element = $compile('<div my-directive></div>')($rootScope);
-        $rootScope.$apply();
-
-        expect(log).toEqual('instance');
-        expect(element.text()).toBe('Hello');
-      });
-    });
-
-
-    it('should allow controller usage in pre-link directive functions with a template', function () {
-      module(function () {
-        var Ctrl = function (log) {
-          log('instance');
-        };
-
-        directive('myDirective', function () {
-          return {
-            scope: true,
-            template: '<p>Hello</p>',
-            controller: Ctrl,
-            compile: function () {
-              return {
-                pre: function (scope, template, attr, ctrl) {},
-                post: function () {}
-              };
-            }
-          };
-        });
-      });
-
-      inject(function ($templateCache, $compile, $rootScope, log) {
-        element = $compile('<div my-directive></div>')($rootScope);
-        $rootScope.$apply();
-
-        expect(log).toEqual('instance');
-        expect(element.text()).toBe('Hello');
       });
     });
   });
