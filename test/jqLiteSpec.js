@@ -479,6 +479,12 @@ describe('jqLite', function() {
 
   describe('class', function() {
 
+    it('should allow an input to have a name of "className"', function() {
+      var element = jqLite('<form class="a"><input name="className"></form>');
+      element.addClass('b');
+      expect(element.attr('class')).toEqual('a b');
+    });
+
     describe('hasClass', function() {
       it('should check class', function() {
         var selector = jqLite([a, b]);
