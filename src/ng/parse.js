@@ -42,7 +42,6 @@ function ensureSafeObject(obj, fullExpression) {
   if (obj && obj.constructor === obj) {
     throw $parseMinErr('isecfn',
         'Referencing Function in Angular expressions is disallowed! Expression: {0}', fullExpression);
-  // 
   } else if (// isWindow(obj)
       obj && obj.document && obj.location && obj.alert && obj.setInterval) {
     throw $parseMinErr('isecwindow',
@@ -110,7 +109,7 @@ Lexer.prototype = {
   lex: function (text) {
     this.text = text;
     this.index = 0;
-    this.ch;
+    this.ch = undefined;
     this.lastCh = ':'; // can start regexp
 
     this.tokens = [];
@@ -206,9 +205,9 @@ Lexer.prototype = {
 
   throwError: function(error, start, end) {
     end = end || this.index;
-    var colStr = (isDefined(start) ?
-        's ' + start +  '-' + this.index + ' [' + this.text.substring(start, end) + ']' :
-        ' ' + end);
+    var colStr = (isDefined(start)
+            ? 's ' + start +  '-' + this.index + ' [' + this.text.substring(start, end) + ']'
+            : ' ' + end);
     throw $parseMinErr('lexerr', 'Lexer Error: {0} at column{1} in expression [{2}].',
         error, colStr, this.text);
   },
@@ -384,6 +383,8 @@ Parser.prototype = {
 
   parse: function (text, json) {
     this.text = text;
+
+    //TODO(i): strip all the obsolte json stuff from this file
     this.json = json;
 
     this.tokens = this.lexer.lex(text, this.csp);
@@ -397,7 +398,7 @@ Parser.prototype = {
       this.fieldAccess =
       this.objectIndex =
       this.filterChain = function() {
-        throwError('is not valid json', {text: text, index: 0});
+        this.throwError('is not valid json', {text: text, index: 0});
       };
     }
 
@@ -526,18 +527,18 @@ Parser.prototype = {
       if (!this.expect(';')) {
         // optimize for the common case where there is only one statement.
         // TODO(size): maybe we should not support multiple statements?
-        return (statements.length === 1) ?
-          statements[0] :
-          function(self, locals) {
-            var value;
-            for (var i = 0; i < statements.length; i++) {
-              var statement = statements[i];
-              if (statement) {
-                value = statement(self, locals);
-              }
-            }
-            return value;
-          };
+        return (statements.length === 1)
+            ? statements[0]
+            : function(self, locals) {
+                var value;
+                for (var i = 0; i < statements.length; i++) {
+                  var statement = statements[i];
+                  if (statement) {
+                    value = statement(self, locals);
+                  }
+                }
+                return value;
+              };
       }
     }
   },
@@ -752,9 +753,9 @@ Parser.prototype = {
       ensureSafeObject(fnPtr, parser.text);
 
       // IE stupidity!
-      var v = fnPtr.apply ?
-        fnPtr.apply(context, args) :
-        fnPtr(args[0], args[1], args[2], args[3], args[4]);
+      var v = fnPtr.apply
+            ? fnPtr.apply(context, args)
+            : fnPtr(args[0], args[1], args[2], args[3], args[4]);
 
       // Check for promise
       if (v && v.then) {
