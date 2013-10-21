@@ -1,4 +1,5 @@
 #!/bin/bash
+##
 
 grunt minify
 gzip -c < build/angular.min.js > build/angular.min.js.gzip
