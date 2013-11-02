@@ -84,7 +84,7 @@ function $SnifferProvider() {
       vendorPrefix: vendorPrefix,
       transitions : transitions,
       animations : animations,
-      msie : msie
+      msie : msie > 0
     };
   }];
 }
