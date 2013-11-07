@@ -427,7 +427,7 @@ forEach({
   },
 
   isolateScope: function(element) {
-    return jqLiteData(element, '$isolateScope');
+    return jqLite(element).data('$isolateScope');
   },
 
   controller: jqLiteController ,
