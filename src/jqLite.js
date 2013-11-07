@@ -336,6 +336,7 @@ function jqLiteController(element, name) {
   return jqLiteInheritedData(element, '$' + (name || 'ngController' ) + 'Controller');
 }
 
+//TODO: remove value arg if possible
 function jqLiteInheritedData(element, name, value) {
   element = jqLite(element);
 
