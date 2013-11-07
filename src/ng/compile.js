@@ -1305,13 +1305,13 @@ function $CompileProvider($provide) {
         if (pre) {
           if (attrStart) pre = groupElementsLinkFnWrapper(pre, attrStart, attrEnd);
           pre.require = directive.require;
-          if (newIsolateScopeDirective === directive || directive.$$isolateScope) pre.isolateScope = true;
+          if (newIsolateScopeDirective === directive || directive.$$isolateScope) pre = (function(originalPre) { return extend(function() { return originalPre.apply(null, arguments); }, originalPre, {isolateScope: true}); })(pre);
           preLinkFns.push(pre);
         }
         if (post) {
           if (attrStart) post = groupElementsLinkFnWrapper(post, attrStart, attrEnd);
           post.require = directive.require;
-          if (newIsolateScopeDirective === directive || directive.$$isolateScope) post.isolateScope = true;
+          if (newIsolateScopeDirective === directive || directive.$$isolateScope) post = (function(originalPost) { return extend(function() { return originalPost.apply(null, arguments) }, originalPost, {isolateScope: true}); })(post);
           postLinkFns.push(post);
         }
       }

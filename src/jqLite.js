@@ -345,9 +345,13 @@ function jqLiteInheritedData(element, name, value) {
   if(element[0].nodeType == 9) {
     element = element.find('html');
   }
+  var names = isArray(name) ? name : [name];
 
   while (element.length) {
-    if ((value = element.data(name)) !== undefined) return value;
+
+    for (var i = 0, ii = names.length; i < ii; i++) {
+      if ((value = element.data(names[i])) !== undefined) return value;
+    }
     element = element.parent();
   }
 }
@@ -419,7 +423,7 @@ forEach({
   inheritedData: jqLiteInheritedData,
 
   scope: function(element) {
-    return jqLiteInheritedData(element, '$scope');
+    return jqLiteInheritedData(element, ['$isolateScope', '$scope']);
   },
 
   controller: jqLiteController ,
