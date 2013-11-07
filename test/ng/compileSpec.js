@@ -2121,7 +2121,7 @@ describe('$compile', function() {
       });
     }));
 
-    it("should associate the isolate scope with the element even if it's the root element of the compiled template",
+    iit("should associate the isolate scope with the element even if it's the root element of the compiled template",
         function() {
           module(function() {
             directive('myC', function() {
@@ -2137,8 +2137,10 @@ describe('$compile', function() {
 
           inject(function($rootScope, $httpBackend) {
             $httpBackend.expectGET('myC.html').respond('<div>foo</div>');
-            compile('<div my-c></div>');
+            compile('<div><div my-c></div></div>');
+            element = element.children().eq(0);
             expect(element.scope()).toBe($rootScope);
+            expect(element.data('$scope')).toBe($rootScope);
             $httpBackend.flush();
             expect(element.scope()).toBe(componentScope);
             expect(componentScope.$parent).toBe($rootScope);
