@@ -2121,6 +2121,30 @@ describe('$compile', function() {
       });
     }));
 
+    it("should associate the isolate scope with the element even if it's the root element of the compiled template",
+        function() {
+          module(function() {
+            directive('myC', function() {
+              return {
+                scope: {},
+                templateUrl: 'myC.html',
+                link: function(scope) {
+                  componentScope = scope;
+                }
+              }
+            });
+          });
+
+          inject(function($rootScope, $httpBackend) {
+            $httpBackend.expectGET('myC.html').respond('<div>foo</div>');
+            compile('<div my-c></div>');
+            expect(element.scope()).toBe($rootScope);
+            $httpBackend.flush();
+            expect(element.scope()).toBe(componentScope);
+            expect(componentScope.$parent).toBe($rootScope);
+          });
+        });
+
     it('should give other directives the parent scope', inject(function($rootScope) {
       compile('<div><input type="text" my-component store-scope ng-model="value"></div>');
       $rootScope.$apply(function() {
