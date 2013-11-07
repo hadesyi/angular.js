@@ -423,7 +423,7 @@ forEach({
   inheritedData: jqLiteInheritedData,
 
   scope: function(element) {
-    return jqLiteInheritedData(element, ['$scope', '$isolateScope']);
+    return jqLite(element).data('$scope') || jqLiteInheritedData(element, ['$isolateScope', '$scope']);
   },
 
   isolateScope: function(element) {
