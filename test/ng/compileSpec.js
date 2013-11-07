@@ -2121,31 +2121,30 @@ describe('$compile', function() {
       });
     }));
 
-    iit("should associate the isolate scope with the element even if it's the root element of the compiled template",
-        function() {
-          module(function() {
-            directive('myC', function() {
-              return {
-                scope: {},
-                templateUrl: 'myC.html',
-                link: function(scope) {
-                  componentScope = scope;
-                }
-              }
-            });
-          });
-
-          inject(function($rootScope, $httpBackend) {
-            $httpBackend.expectGET('myC.html').respond('<div>foo</div>');
-            compile('<div><div my-c></div></div>');
-            element = element.children().eq(0);
-            expect(element.scope()).toBe($rootScope);
-            expect(element.data('$scope')).toBe($rootScope);
-            $httpBackend.flush();
-            expect(element.scope()).toBe(componentScope);
-            expect(componentScope.$parent).toBe($rootScope);
-          });
+    it("should associate the isolate scope with the element", function() {
+      module(function() {
+        directive('fooComponent', function() {
+          return {
+            scope: {},
+            templateUrl: 'foo-component.html',
+            link: function(scope) {
+              componentScope = scope;
+            }
+          }
         });
+      });
+
+      inject(function($rootScope, $httpBackend) {
+        $httpBackend.expectGET('foo-component.html').respond('<div>foo</div>');
+        compile('<div foo-component></div>');
+        expect(element.scope()).toBe($rootScope);
+        expect(element.isolateScope()).toBe(undefined);
+        $httpBackend.flush();
+        expect(element.scope()).toBe($rootScope);
+        expect(element.isolateScope()).toBe(componentScope);
+        expect(componentScope.$parent).toBe($rootScope);
+      });
+    });
 
     it('should give other directives the parent scope', inject(function($rootScope) {
       compile('<div><input type="text" my-component store-scope ng-model="value"></div>');
