@@ -169,6 +169,7 @@ function $InterpolateProvider() {
       if (!mustHaveExpression  || hasInterpolation) {
         var concat = new Array(parts.length),
             expressions = {};
+
         forEach(parts, function (value, index) {
           if (isFunction(value)) {
             expressions[index] = value;
@@ -177,49 +178,51 @@ function $InterpolateProvider() {
             concat[index] = value;
           }
         });
+
         // computes all the interpolations and returns the resulting string
-        // a specific index might already be computed (cz of the scope's dirty-checking),
+        // a specific index might already be computed (thanks to the scope's dirty-checking),
         // and so its expression shouldn't be executed a 2nd time
         // also populates the lastValues of custom watchers for internal dirty-checking
-        var getTextValue = function (scope, computedIndex, computedValue, lastValues) {
+        //TODO(i): rename to getConcatValue
+        var getTextValue = function(scope, computedIndex, computedValue, lastValues) {
           try {
+
             forEach(expressions, function (expression, index) {
-              concat[index] = index == computedIndex
+              concat[index] = (index === computedIndex)
                   ? computedValue
                   : getStringValue(expression(scope));
 
               if (lastValues) lastValues[index] = concat[index];
             });
             return concat.join('');
-          }
-          catch(err) {
+
+          } catch(err) {
             var newErr = $interpolateMinErr('interr', "Can't interpolate: {0}\n{1}", text,
                 err.toString());
             $exceptionHandler(newErr);
           }
         };
-        var getStringValue = function (value) {
+
+        var getStringValue = function(value) {
           value = trustedContext
               ? $sce.getTrusted(trustedContext, value)
               : $sce.valueOf(value);
 
-          if (value === null || isUndefined(value)) {
+          if (value == null) {
             return '';
           }
           return isString(value) ? value : toJson(value);
         };
 
-        fn = function(scope) {
-          return getTextValue(scope);
-        };
+        fn = getTextValue;
         fn.exp = text;
         fn.parts = parts;
 
         // watches each interpolation separately for performance
-        fn.$$beWatched = function (scope, origListener, objectEquality) {
+        fn.$$beWatched = function(scope, origListener, objectEquality) {
           var lastTextValue, lastValues = {}, watchersRm = [];
 
-          forEach(expressions, function (expression, index) {
+          forEach(expressions, function(expression, index) {
             watchersRm.push(scope.$watch(function watchInterpolatedExpr(scope) {
               try {
                 return getStringValue(expression(scope));

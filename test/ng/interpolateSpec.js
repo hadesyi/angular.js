@@ -10,6 +10,7 @@ describe('$interpolate', function() {
 
   it('should return undefined when there are no bindings and textOnly is set to true',
       inject(function($interpolate) {
+    //TODO(i): this is weird
     expect($interpolate('some text', true)).toBeNull();
   }));
 
@@ -319,5 +320,4 @@ describe('$interpolate', function() {
       expect(nbCalls).toBe(4);
     }));
   })
-
 });
