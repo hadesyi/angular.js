@@ -2,8 +2,15 @@
 
 set -e
 
-export SAUCE_ACCESS_KEY=`echo $SAUCE_ACCESS_KEY | rev`
+ls -l bower_components/jquery/
+echo ""
+echo ""
 
-grunt parallel:travis --reporters dots \
-  --browsers SL_Chrome,SL_Firefox,SL_Safari,SL_IE_8,SL_IE_9,SL_IE_10 \
-  --e2e-browsers SL_Chrome
+if [[ -f bower_components/jquery/jquery.min.js ]]
+then
+
+  echo "Found the file. YAY"
+else
+  echo "File NOT FOUND"
+  exit 1
+fi
