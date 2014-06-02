@@ -2173,6 +2173,19 @@ describe('$compile', function() {
   describe('interpolation', function() {
     var observeSpy, directiveAttrs, deregisterObserver;
 
+    function countWatchers(scope) {
+      var count = 0,
+        head = scope.$$nodeGroupsHead.$watchers,
+        tail = scope.$$nodeGroupsCurrentTail.$watchers;
+
+      while (tail && head !== tail) {
+        count++;
+        head = head.next;
+      }
+      if (tail) count++;
+      return count;
+    }
+
     beforeEach(module(function() {
       directive('observer', function() {
         return function(scope, elm, attr) {
@@ -2205,11 +2218,11 @@ describe('$compile', function() {
         function($rootScope, $compile) {
           $rootScope.name = 'angular';
           element = $compile('<div name="attr: {{::name}}">text: {{::name}}</div>')($rootScope);
-          expect($rootScope.$$watchers.length).toBe(2);
+          expect(countWatchers($rootScope)).toBe(2);
           $rootScope.$digest();
           expect(element.text()).toEqual('text: angular');
           expect(element.attr('name')).toEqual('attr: angular');
-          expect($rootScope.$$watchers.length).toBe(0);
+          expect(countWatchers($rootScope)).toBe(0);
           $rootScope.name = 'not-angular';
           $rootScope.$digest();
           expect(element.text()).toEqual('text: angular');
@@ -2221,11 +2234,11 @@ describe('$compile', function() {
         function($rootScope, $compile) {
           $rootScope.name = 'angular';
           element = $compile('<div name="attr: {{::name}}">text: {{ ::name }}</div>')($rootScope);
-          expect($rootScope.$$watchers.length).toBe(2);
+          expect(countWatchers($rootScope)).toBe(2);
           $rootScope.$digest();
           expect(element.text()).toEqual('text: angular');
           expect(element.attr('name')).toEqual('attr: angular');
-          expect($rootScope.$$watchers.length).toBe(0);
+          expect(countWatchers($rootScope)).toBe(0);
           $rootScope.name = 'not-angular';
           $rootScope.$digest();
           expect(element.text()).toEqual('text: angular');
@@ -2848,49 +2861,53 @@ describe('$compile', function() {
 
     describe('bind-once', function () {
 
-      function countWatches(scope) {
-        var result = 0;
-        while (scope !== null) {
-          result += (scope.$$watchers && scope.$$watchers.length) || 0;
-          result += countWatches(scope.$$childHead);
-          scope = scope.$$nextSibling;
+      function countAllWatches(scope) {
+        var count = 0,
+          head = scope.$$nodeGroupsHead.$watchers,
+          tail = scope.$$nodeGroupsTail.$watchers;
+
+        while (tail && head !== tail) {
+          count++;
+          head = head.next;
         }
-        return result;
+        if (tail) count++;
+        return count;
       }
 
       it('should be possible to one-time bind a parameter on a component with a template', function() {
         module(function() {
           directive('otherTplDir', function() {
             return {
-              scope: {param1: '=', param2: '='},
-              template: '1:{{param1}};2:{{param2}};3:{{::param1}};4:{{::param2}}'
+              scope: {param: '@', anotherParam: '=' },
+              template: 'value: {{param}}, another value {{anotherParam}}'
             };
           });
         });
 
         inject(function($rootScope) {
-          compile('<div other-tpl-dir param1="::foo" param2="bar"></div>');
-          expect(countWatches($rootScope)).toEqual(7); // 5 -> template watch group, 2 -> '='
+          compile('<div other-tpl-dir param="{{::foo}}" another-param="::bar"></div>');
+          expect(countAllWatches($rootScope)).toEqual(3);
           $rootScope.$digest();
-          expect(element.html()).toBe('1:;2:;3:;4:');
-          expect(countWatches($rootScope)).toEqual(7);
+          expect(element.html()).toBe('value: , another value ');
+          expect(countAllWatches($rootScope)).toEqual(3);
 
-          $rootScope.foo = 'foo';
+          $rootScope.foo = 'from-parent';
           $rootScope.$digest();
-          expect(element.html()).toBe('1:foo;2:;3:foo;4:');
-          expect(countWatches($rootScope)).toEqual(5);
+          expect(element.html()).toBe('value: from-parent, another value ');
+          expect(countAllWatches($rootScope)).toEqual(2);
 
-          $rootScope.foo = 'baz';
-          $rootScope.bar = 'bar';
+          $rootScope.foo = 'not-from-parent';
+          $rootScope.bar = 'some value';
           $rootScope.$digest();
-          expect(element.html()).toBe('1:foo;2:bar;3:foo;4:bar');
-          expect(countWatches($rootScope)).toEqual(4);
+          expect(element.html()).toBe('value: from-parent, another value some value');
+          expect(countAllWatches($rootScope)).toEqual(1);
 
-          $rootScope.bar = 'baz';
+          $rootScope.bar = 'some new value';
           $rootScope.$digest();
-          expect(element.html()).toBe('1:foo;2:baz;3:foo;4:bar');
+          expect(element.html()).toBe('value: from-parent, another value some value');
         });
       });
+
 
       it('should be possible to one-time bind a parameter on a component with a template', function() {
         module(function() {
@@ -2904,21 +2921,21 @@ describe('$compile', function() {
 
         inject(function($rootScope) {
           compile('<div other-tpl-dir param1="{{::foo}}" param2="{{bar}}"></div>');
-          expect(countWatches($rootScope)).toEqual(7); // 5 -> template watch group, 2 -> {{ }}
+          expect(countAllWatches($rootScope)).toEqual(7); // 5 -> template watch group, 2 -> {{ }}
           $rootScope.$digest();
           expect(element.html()).toBe('1:;2:;3:;4:');
-          expect(countWatches($rootScope)).toEqual(5); // (- 2) -> bind-once in template
+          expect(countAllWatches($rootScope)).toEqual(5); // (- 2) -> bind-once in template
 
           $rootScope.foo = 'foo';
           $rootScope.$digest();
           expect(element.html()).toBe('1:foo;2:;3:;4:');
-          expect(countWatches($rootScope)).toEqual(4);
+          expect(countAllWatches($rootScope)).toEqual(4);
 
           $rootScope.foo = 'baz';
           $rootScope.bar = 'bar';
           $rootScope.$digest();
           expect(element.html()).toBe('1:foo;2:bar;3:;4:');
-          expect(countWatches($rootScope)).toEqual(4);
+          expect(countAllWatches($rootScope)).toEqual(4);
 
           $rootScope.bar = 'baz';
           $rootScope.$digest();
