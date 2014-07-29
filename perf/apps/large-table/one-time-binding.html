@@ -1,0 +1,4 @@
+<h2>one-time binding</h2>
+<div ng-repeat="row in ::data">
+  <span ng-repeat="column in ::row"><span ng-bind="::column.i"></span>:<span ng-bind="::column.j"></span>|</span>
+</div>
