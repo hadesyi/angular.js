@@ -307,8 +307,8 @@ Lexer.prototype = {
       token.constant = true;
     } else {
       var getter = getterFn(ident, this.options, this.text);
-      token.fn = extend(function(self, locals) {
-        return (getter(self, locals));
+      token.fn = extend(function $parsePathGetter(self, locals) {
+        return getter(self, locals);
       }, {
         assign: function(self, value) {
           return setter(self, ident, value, parser.text);
@@ -675,7 +675,7 @@ Parser.prototype = {
     var field = this.expect().text;
     var getter = getterFn(field, this.options, this.text);
 
-    return extend(function(scope, locals, self) {
+    return extend(function $parseFieldAccess(scope, locals, self) {
       return getter(self || object(scope, locals));
     }, {
       assign: function(scope, value, locals) {
@@ -690,7 +690,7 @@ Parser.prototype = {
     var indexFn = this.expression();
     this.consume(']');
 
-    return extend(function(self, locals) {
+    return extend(function $parseObjectIndex(self, locals) {
       var o = obj(self, locals),
           i = indexFn(self, locals),
           v;
@@ -722,7 +722,7 @@ Parser.prototype = {
     // we can safely reuse the array across invocations
     var args = argsFn.length ? [] : null;
 
-    return function(scope, locals) {
+    return function $parseFunctionCall(scope, locals) {
       var context = contextGetter ? contextGetter(scope, locals) : scope;
       var fn = fnGetter(scope, locals, context) || noop;
 
