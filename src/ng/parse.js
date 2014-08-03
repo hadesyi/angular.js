@@ -995,7 +995,7 @@ function $ParseProvider() {
   this.$get = ['$filter', '$sniffer', function($filter, $sniffer) {
     $parseOptions.csp = $sniffer.csp;
 
-    return function(exp, interceptorFn) {
+    return function $parse(exp, interceptorFn) {
       var parsedExpression, oneTime,
           cacheKey = (exp = trim(exp));
 
@@ -1013,8 +1013,8 @@ function $ParseProvider() {
             var parser = new Parser(lexer, $filter, $parseOptions);
             parsedExpression = parser.parse(exp);
 
-            if (parsedExpression.constant) parsedExpression.$$watchDelegate = constantWatch;
-            else if (oneTime) parsedExpression.$$watchDelegate = oneTimeWatch;
+            if (parsedExpression.constant) parsedExpression.$$watchDelegate = constantWatchDelegate;
+            else if (oneTime) parsedExpression.$$watchDelegate = oneTimeWatchDelegate;
 
             if (cacheKey !== 'hasOwnProperty') {
               // Only cache the value if it's not going to mess up the cache object
@@ -1032,7 +1032,7 @@ function $ParseProvider() {
       }
     };
 
-    function oneTimeWatch(scope, listener, objectEquality, deregisterNotifier, parsedExpression) {
+    function oneTimeWatchDelegate(scope, listener, objectEquality, deregisterNotifier, parsedExpression) {
       var unwatch, lastValue;
       return unwatch = scope.$watch(function oneTimeWatch(scope) {
         return parsedExpression(scope);
@@ -1051,7 +1051,7 @@ function $ParseProvider() {
       }, objectEquality, deregisterNotifier);
     }
 
-    function constantWatch(scope, listener, objectEquality, deregisterNotifier, parsedExpression) {
+    function constantWatchDelegate(scope, listener, objectEquality, deregisterNotifier, parsedExpression) {
       var unwatch;
       return unwatch = scope.$watch(function constantWatch(scope) {
         return parsedExpression(scope);
