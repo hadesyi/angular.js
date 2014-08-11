@@ -679,10 +679,12 @@ function $RootScopeProvider(){
           dirty = false;
 
           while(asyncQueue.length) {
+            // TODO(perf): can we get rid of the try/catch blocks in digest? impact: 0.9ms (5.36 -> 4.47ms)
             try {
               asyncTask = asyncQueue.shift();
               asyncTask.scope.$eval(asyncTask.expression);
             } catch (e) {
+              // TODO(fix): why clear phase here?
               clearPhase();
               $exceptionHandler(e);
             }

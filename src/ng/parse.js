@@ -307,6 +307,7 @@ Lexer.prototype = {
       token.constant = true;
     } else {
       var getter = getterFn(ident, this.options, this.text);
+      // TODO(perf): can we get rid of the extend? that would shave off 0.5ms (5.81->5.36ms)
       token.fn = extend(function $parsePathGetter(self, locals) {
         return getter(self, locals);
       }, {
