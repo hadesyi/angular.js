@@ -131,7 +131,7 @@ describe('Scope', function() {
     it('should not keep constant literals on the watch queue', inject(function($rootScope) {
       $rootScope.$watch('[]', function() {});
       $rootScope.$watch('{}', function() {});
-      expect(countWatchers($rootScope).toEqual(2);
+      expect(countWatchers($rootScope)).toEqual(2);
       $rootScope.$digest();
 
       expect($rootScope.$$watchers.length).toEqual(0);
@@ -170,11 +170,11 @@ describe('Scope', function() {
 
       $rootScope.foo = 'foo';
       $rootScope.$digest();
-      expect(countWatchers($rootScope).toEqual(2);
+      expect(countWatchers($rootScope)).toEqual(2);
 
       $rootScope.bar = 'bar';
       $rootScope.$digest();
-      expect(countWatchers($rootScope).toEqual(0);
+      expect(countWatchers($rootScope)).toEqual(0);
     }));
 
     it('should delegate exceptions', function() {
