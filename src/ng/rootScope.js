@@ -684,8 +684,6 @@ function $RootScopeProvider(){
               asyncTask = asyncQueue.shift();
               asyncTask.scope.$eval(asyncTask.expression);
             } catch (e) {
-              // TODO(fix): why clear phase here?
-              clearPhase();
               $exceptionHandler(e);
             }
             lastDirtyWatch = null;
@@ -730,7 +728,6 @@ function $RootScopeProvider(){
                 removeNodes(currentWatcher.scope, '$watchers', currentWatcher, currentWatcher);
               }
             } catch (e) {
-              clearPhase();
               $exceptionHandler(e);
             }
             currentWatcher = currentWatcher.next;
