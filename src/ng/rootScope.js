@@ -689,14 +689,18 @@ function $RootScopeProvider(){
             lastDirtyWatch = null;
           }
 
-          for (currentWatcher = this.$$nodeGroupsHead.$watchers;
-               this.$$nodeGroupsTail.$watchers && this.$$nodeGroupsTail.$watchers.next !== currentWatcher;
-               currentWatcher = currentWatcher.next) {
+          currentWatcher = this.$$nodeGroupsHead.$watchers;
+          var isRootDigest = (this === this.$root);
+
+          while ((isRootDigest && currentWatcher !== undefined) ||
+                 (this.$$nodeGroupsTail.$watchers && this.$$nodeGroupsTail.$watchers.next !== currentWatcher)) {
             try {
               if (!currentWatcher.toRemove) {
                 // Most common watches are on primitives, in which case we can short
                 // circuit it with === operator, only when === fails do we use .equals
-                if ((value = currentWatcher.get(currentWatcher.scope)) !== (last = currentWatcher.last) &&
+                value = currentWatcher.get(currentWatcher.scope);
+                last = currentWatcher.last;
+                if (value !== last &&
                     !(currentWatcher.eq
                         ? equals(value, last)
                         : (typeof value === 'number' && typeof last === 'number'
@@ -728,6 +732,7 @@ function $RootScopeProvider(){
               clearPhase();
               $exceptionHandler(e);
             }
+            currentWatcher = currentWatcher.next;
           }
 
           // `break traverseScopesLoop;` takes us to here
