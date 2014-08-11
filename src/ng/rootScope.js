@@ -720,7 +720,6 @@ function $RootScopeProvider(){
                     logMsg += '; newVal: ' + toJson(value) + '; oldVal: ' + toJson(last);
                     watchLog[logIdx].push(logMsg);
                   }
-                  if (currentWatcher.get.$$unwatch) stableWatchesCandidates.push(currentWatcher);
                 } else if (currentWatcher === lastDirtyWatch) {
                   // If the most recently dirty watcher is now clean, short circuit since the remaining watchers
                   // have already been tested.
@@ -737,7 +736,7 @@ function $RootScopeProvider(){
             currentWatcher = currentWatcher.next;
           }
 
-          // `break traverseScopesLoop;` takes us to here
+          // `break;` from the while loop takes us to here
 
           if((dirty || asyncQueue.length) && !(ttl--)) {
             clearPhase();
