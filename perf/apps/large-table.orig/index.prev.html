@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html ng-app="plunker">
+
+  <head>
+    <meta charset="utf-8" />
+    <title>Large Table</title>
+    <link rel="stylesheet" href="style.css" />
+
+
+    <script src="../../../build.prev/angular.js"></script>
+    <script src="../../../build.prev/angular-route.js"></script>
+    <script src="../../benchmark.js"></script>
+    <script>
+      var bench = new Benchmark('digest', function() {
+          rootScope.$apply();
+        }
+        , {
+
+        // displayed by Benchmark#toString if `name` is not available
+        'id': 'xyz',
+
+        // called when the benchmark starts running
+        'onStart': function() {
+          console.log('starting')
+        },
+
+        // called after each run cycle
+        'onCycle': function() {
+          console.log('cycle done, count: ', this.count, this.times)
+        },
+
+        // called when aborted
+        'onAbort': function() {
+          console.log('aborted')
+        },
+
+        // called when a test errors
+        'onError': function() {
+          console.log('errored')
+        },
+
+        // called when reset
+        'onReset': function() {
+          console.log('reset')
+        },
+
+        // called when the benchmark completes running
+        'onComplete': function() {
+          console.log('complete!');
+          console.log('Ran ' + this.count + ' times in ' + this.times.cycle.toFixed(3) + ' seconds.', this.cycles);
+          console.log((this.stats.mean * 1000).toFixed(2) + 'ms (Ops/s: ' + this.hz.toFixed(this.hz < 100 ? 2 : 0) + ') (±' + this.stats.rme.toFixed(2) + '%) variance: ' + this.stats.variance);
+          log.textContent = (this.stats.mean * 1000).toFixed(2) + 'ms (Ops/s: ' + this.hz.toFixed(this.hz < 100 ? 2 : 0) + ') (±' + this.stats.rme.toFixed(2) + '%) variance: ' + this.stats.variance
+        },
+
+        // compiled/called before the test loop
+        'setup': function () {
+          var rootScope = angular.element(document).scope();
+        },
+
+        // compiled/called after the test loop
+        //'teardown': teardown
+      });
+
+
+      var bench2 = new Benchmark('clear', function(deferred) {
+          window.location.hash = '#/baseline-binding';
+        }
+        , {
+
+        // displayed by Benchmark#toString if `name` is not available
+        //'id': 'xyz',
+
+        'defer': 'true',
+        //'delay': 0.5,
+        'minSamples': 20,
+
+        // called when the benchmark starts running
+        'onStart': function() {
+          console.log('starting')
+        },
+
+        // called after each run cycle
+        'onCycle': function() {
+          console.log('cycle done');
+        },
+
+        // called when aborted
+        'onAbort': function() {
+          console.log('aborted')
+        },
+
+        // called when a test errors
+        'onError': function() {
+          console.log('errored')
+        },
+
+        // called when reset
+        'onReset': function() {
+          console.log('reset')
+        },
+
+        // called when the benchmark completes running
+        'onComplete': function() {
+          console.log('complete!');
+          console.log('Ran ' + this.count + ' times in ' + this.times.cycle.toFixed(3) + ' seconds.', this.cycles);
+          console.log((this.stats.mean * 1000).toFixed(2) + 'ms (Ops/s: ' + this.hz.toFixed(this.hz < 100 ? 2 : 0) + ') (±' + this.stats.rme.toFixed(2) + '%)');
+        },
+
+        // compiled/called before the test loop
+        'setup': function () {
+          var rootScope = angular.element(document).scope();
+          rootScope.$on('$routeChangeSuccess', function(e, current) {
+            if (current.url === '/baseline-binding') {
+              requestAnimationFrame(function() {
+                requestAnimationFrame(function() {
+                  console.log('clear!')
+                  window.location.hash = '#/clear';
+                });
+              });
+            } else if (current.url === '/clear') {
+              requestAnimationFrame(function() {
+                requestAnimationFrame(function() {
+                  deferred.resolve();
+                });
+              });
+            }
+          });
+        },
+
+        // compiled/called after the test loop
+        //'teardown': teardown
+      });
+    </script>
+
+
+    <!--
+    <script src="http://code.jquery.com/jquery-2.1.1.js"></script>
+
+    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.3.0-beta.9/angular.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.3.0-beta.9/angular-route.js"></script>
+
+    <script src="http://ci.angularjs.org/job/angular.js-igor/1234/artifact/build/angular.js"></script>
+    <script src="http://ci.angularjs.org/job/angular.js-igor/1234/artifact/build/angular-route.js"></script>
+    <script src="http://localhost:8000/build/angular.js"></script>
+    <script src="http://localhost:8000/build/angular-route.js"></script>
+    -->
+    <script src="app.js"></script>
+  </head>
+
+  <body ng-controller="MainCtrl">
+    <p>[<a href="#/baseline-interpolation">baseline interpolation</a>] |
+       [<a href="#/baseline-binding">baseline binding</a>] |
+       [<a href="#/one-time-interpolation">one-time interpolation</a>] |
+       [<a href="#/one-time-binding">one-time binding</a>] |
+       [<a href="#/clear">clear view</a>]
+
+       <span ng-if="loading">Loading...</span>
+     </p>
+    <button ng-click="timeDigest()">digest</button>
+    <button onclick="bench.run()">bench</button>
+    <div id="log">empty log</div>
+    <p>
+      number of bindings: {{numberOfBindings}} <br>
+      number of watches: {{numberOfWatches}} <br>
+      last digest duration: {{digestDuration}}ms<br>
+      last route change duration: {{routeChangeDuration}}ms
+    </p>
+    <ng-view></ng-view>
+  </body>
+
+</html>
