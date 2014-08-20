@@ -185,9 +185,15 @@
  * * `$scope` - Current scope associated with the element
  * * `$element` - Current element
  * * `$attrs` - Current attributes object for the element
- * * `$transclude` - A transclude linking function pre-bound to the correct transclusion scope.
- *    The scope can be overridden by an optional first argument.
- *   `function([scope], cloneLinkingFn)`.
+ * * `$transclude` - A transclude linking function pre-bound to the correct transclusion scope:
+ *   `function([scope], cloneLinkingFn, futureParentNode)`.
+ *    * The scope can be overridden by an optional first argument.
+ *    * The `futureParentNode` defines the parent to which the `cloneLinkingFn` will add the cloned elements.
+ *      Only needed for transcludes that are allowed to contain non html elements (e.g. SVG elements)
+ *      and when the `cloneLinkinFn` is passed,
+ *      as those elements need to created and cloned in a special way when they are defined outside their
+ *      usual containers (e.g. like `<svg>`). See also the `directive.templateNamespace` property.
+ *      Default value: `$element.parent()` resp. `$element` for `transclude:'element'` resp. `transclude:true`.
  *
  *
  * #### `require`
@@ -264,6 +270,8 @@
  * The replacement process migrates all of the attributes / classes from the old element to the new
  * one. See the {@link guide/directive#creating-custom-directives_creating-directives_template-expanding-directive
  * Directives Guide} for an example.
+ *
+ * Right now, this is only really required for SVG directives that transclude content.
  *
  * #### `transclude`
  * compile the content of the element and make it available to the directive.
@@ -361,7 +369,31 @@
  *   * `transcludeFn` - A transclude linking function pre-bound to the correct transclusion scope.
  *     The scope can be overridden by an optional first argument. This is the same as the `$transclude`
  *     parameter of directive controllers.
- *     `function([scope], cloneLinkingFn)`.
+ *     `function([scope], cloneLinkingFn, futureParentNode)`.
+ *
+ * * `html` - All transcluded root nodes are HTML. Root nodes may also be
+ *   top-level elements such as `<svg>` or `<math>`.
+ * * `svg` - The transcluded root nodes are SVG elements (excluding `<math>`).
+ * * `math` - The transcluded root nodes are MathML elements (excluding `<svg>`).
+ *
+ * If no `templateNamespace` is specified, then the namespace is considered to be `html`.
+ *
+
+ *     (e.g. SVG elements)
+ to determine the correct as those elements need to be created and cloned
+ *     in a special way when they are defined outside their usual containers like `<svg>` and `<math>`.
+ *
+ * * `html` - All transcluded root nodes are HTML. Root nodes may also be
+ *   top-level elements such as `<svg>` or `<math>`.
+ * * `svg` - The transcluded root nodes are SVG elements (excluding `<math>`).
+ * * `math` - The transcluded root nodes are MathML elements (excluding `<svg>`).
+ *
+ * If no `templateNamespace` is specified, then the namespace is considered to be `html`.
+ *
+
+ *     This is needed
+ * needed when the content of the transclude are allowed to be non html elements,
+ *     e.g. SVG elements or MathML elements.
  *
  *
  * #### Pre-linking function
@@ -879,8 +911,18 @@ function $CompileProvider($provide, $$sanitizeUriProvider) {
               compileNodes($compileNodes, transcludeFn, $compileNodes,
                            maxPriority, ignoreDirective, previousCompileContext);
       safeAddClass($compileNodes, 'ng-scope');
-      return function publicLinkFn(scope, cloneConnectFn, transcludeControllers, parentBoundTranscludeFn){
+      var namespace = null;
+      return function publicLinkFn(scope, cloneConnectFn, transcludeControllers, parentBoundTranscludeFn, futureParentNode){
         assertArg(scope, 'scope');
+        if (!namespace) {
+          namespace = detectNamespaceForChildElements(futureParentNode);
+          if (namespace !== 'html') {
+            $compileNodes = jqLite(
+              wrapTemplate(namespace, jqLite('<div>').append($compileNodes).html())
+            );
+          }
+        }
+
         // important!!: we must call our jqLite.clone() since the jQuery one is trying to be smart
         // and sometimes changes the structure of the DOM.
         var $linkNode = cloneConnectFn
@@ -899,6 +941,17 @@ function $CompileProvider($provide, $$sanitizeUriProvider) {
         if (compositeLinkFn) compositeLinkFn(scope, $linkNode, $linkNode, parentBoundTranscludeFn);
         return $linkNode;
       };
+    }
+
+    function detectNamespaceForChildElements(parentElement) {
+      // TODO: Make this detect MathML as well...
+      var node = parentElement && parentElement[0];
+      if (!node) {
+        return 'html';
+      } else {
+        var toString = node.toString();
+        return node.nodeName !== 'foreignObject' && toString.match(/SVG/) ? 'svg': 'html';
+      }
     }
 
     function safeAddClass($element, className) {
@@ -1024,7 +1077,7 @@ function $CompileProvider($provide, $$sanitizeUriProvider) {
 
     function createBoundTranscludeFn(scope, transcludeFn, previousBoundTranscludeFn, elementTransclusion) {
 
-      var boundTranscludeFn = function(transcludedScope, cloneFn, controllers) {
+      var boundTranscludeFn = function(transcludedScope, cloneFn, controllers, futureParentNode) {
         var scopeCreated = false;
 
         if (!transcludedScope) {
@@ -1033,7 +1086,7 @@ function $CompileProvider($provide, $$sanitizeUriProvider) {
           scopeCreated = true;
         }
 
-        var clone = transcludeFn(transcludedScope, cloneFn, controllers, previousBoundTranscludeFn);
+        var clone = transcludeFn(transcludedScope, cloneFn, controllers, previousBoundTranscludeFn, futureParentNode);
         if (scopeCreated && !elementTransclusion) {
           clone.on('$destroy', function() { transcludedScope.$destroy(); });
         }
@@ -1645,20 +1698,30 @@ function $CompileProvider($provide, $$sanitizeUriProvider) {
         }
 
         // This is the function that is injected as `$transclude`.
-        function controllersBoundTransclude(scope, cloneAttachFn) {
+        // Note: all arguments are optional!
+        function controllersBoundTransclude(/*scope, cloneAttachFn, futureParentNode*/) {
+          var scope, cloneAttachFn, futureParentNode;
           var transcludeControllers;
 
-          // no scope passed
-          if (!cloneAttachFn) {
-            cloneAttachFn = scope;
-            scope = undefined;
+          var arg;
+          for (var i=0; i<arguments.length; i++) {
+            arg = arguments[i];
+            if (isScope(arg)) {
+              scope = arg;
+            } else if (isFunction(arg)) {
+              cloneAttachFn = arg;
+            } else {
+              futureParentNode = arg;
+            }
           }
 
           if (hasElementTranscludeDirective) {
             transcludeControllers = elementControllers;
           }
-
-          return boundTranscludeFn(scope, cloneAttachFn, transcludeControllers);
+          if (!futureParentNode) {
+            futureParentNode = hasElementTranscludeDirective ? $element.parent() : $element;
+          }
+          return boundTranscludeFn(scope, cloneAttachFn, transcludeControllers, futureParentNode);
         }
       }
     }
