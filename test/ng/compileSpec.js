@@ -839,12 +839,12 @@ describe('$compile', function() {
         }));
 
         if (window.SVGAElement) {
-          it('should support SVG templates using directive.type=svg', function() {
+          it('should support SVG templates using directive.templateNamespace=svg', function() {
             module(function() {
               directive('svgAnchor', valueFn({
                 replace: true,
                 template: '<a xlink:href="{{linkurl}}">{{text}}</a>',
-                type: 'SVG',
+                templateNamespace: 'SVG',
                 scope: {
                   linkurl: '@svgAnchor',
                   text: '@?'
@@ -866,13 +866,13 @@ describe('$compile', function() {
         // and even there, the browser does not export MathML element constructors globally.
         // So the test is slightly limited in what it does. But as browsers begin to
         // implement MathML natively, this can be tightened up to be more meaningful.
-        it('should support MathML templates using directive.type=math', function() {
+        it('should support MathML templates using directive.templateNamespace=math', function() {
           module(function() {
             directive('pow', valueFn({
               replace: true,
               transclude: true,
               template: '<msup><mn>{{pow}}</mn></msup>',
-              type: 'MATH',
+              templateNamespace: 'MATH',
               scope: {
                 pow: '@pow',
               },
@@ -888,6 +888,7 @@ describe('$compile', function() {
             $rootScope.$digest();
             var child = element.children().eq(0);
             expect(nodeName_(child)).toMatch(/msup/i);
+            expect(child[0].constructor).toBe(Element);
           });
         });
       });
@@ -1736,12 +1737,12 @@ describe('$compile', function() {
         }));
 
         if (window.SVGAElement) {
-          it('should support SVG templates using directive.type=svg', function() {
+          it('should support SVG templates using directive.templateNamespace=svg', function() {
             module(function() {
               directive('svgAnchor', valueFn({
                 replace: true,
                 templateUrl: 'template.html',
-                type: 'SVG',
+                templateNamespace: 'SVG',
                 scope: {
                   linkurl: '@svgAnchor',
                   text: '@?'
@@ -1764,13 +1765,13 @@ describe('$compile', function() {
         // and even there, the browser does not export MathML element constructors globally.
         // So the test is slightly limited in what it does. But as browsers begin to
         // implement MathML natively, this can be tightened up to be more meaningful.
-        it('should support MathML templates using directive.type=math', function() {
+        it('should support MathML templates using directive.templateNamespace=math', function() {
           module(function() {
             directive('pow', valueFn({
               replace: true,
               transclude: true,
               templateUrl: 'template.html',
-              type: 'MATH',
+              templateNamespace: 'math',
               scope: {
                 pow: '@pow',
               },
@@ -1787,6 +1788,7 @@ describe('$compile', function() {
             $rootScope.$digest();
             var child = element.children().eq(0);
             expect(nodeName_(child)).toMatch(/msup/i);
+            expect(child[0].constructor).toBe(window.Element);
           });
         });
       });
