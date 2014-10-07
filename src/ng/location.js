@@ -832,32 +832,40 @@ function $LocationProvider(){
     });
 
     // update browser
-    var changeCounter = 0;
+    var initializing = true;
+
     $rootScope.$watch(function $locationWatch() {
       var oldUrl = $browser.url();
       var oldState = $browser.state();
       var currentReplace = $location.$$replace;
-      var currentStateSent = $location.$$stateSent && changeCounter;
+      var currentStateSent = $location.$$stateSent;
+      var origInitializing = initializing;
 
-      if (!changeCounter || oldUrl !== $location.absUrl() ||
+      if (initializing || oldUrl !== $location.absUrl() ||
           ($location.$$html5 && $sniffer.history && oldState !== $location.$$state)) {
-        changeCounter++;
+        initializing = false;
+
         $rootScope.$evalAsync(function() {
           if ($rootScope.$broadcast('$locationChangeStart', $location.absUrl(), oldUrl,
               $location.$$state, oldState).defaultPrevented) {
             $location.$$parse(oldUrl);
             $location.$$state = oldState;
           } else {
-            setBrowserUrlWithFallback($location.absUrl(), currentReplace,
-              currentStateSent ? null : $location.$$state);
+            if (!origInitializing) {
+              setBrowserUrlWithFallback($location.absUrl(), currentReplace,
+                                        currentStateSent ? null : $location.$$state);
+            }
+
             afterLocationChange(oldUrl, oldState);
           }
         });
       }
+
       $location.$$stateSent = true;
       $location.$$replace = false;
 
-      return changeCounter;
+      // we don't need to return anything because $evalAsync will make the digest loop dirty when
+      // there is a change
     });
 
     return $location;
