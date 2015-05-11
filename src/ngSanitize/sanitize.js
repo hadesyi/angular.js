@@ -246,7 +246,7 @@ var baseNode;
   } else if (window.ActiveXObject) {
     doc = new window.ActiveXObject("Msxml.DOMDocument");
   } else {
-    throw ngMinErr('ddns', "DOMDocument not supported!");
+    throw $sanitizeMinErr('ddns', "DOMDocument not supported");
   }
   var docElement = doc.documentElement || doc.getDocumentElement();
   var bodyElements = docElement.getElementsByTagName('body');
